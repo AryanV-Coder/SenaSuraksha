@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animated Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            background: linear-gradient(120deg, #0f8411 0%, #404242 100%);
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+        .mainheading{
+            color:rgb(243, 235, 141);
+            text-align: center;
+            position: relative;
+            top:10vh;
+            text-decoration: 1.5px rgb(243, 235, 141) underline;
+            text-underline-offset: 12px;
+            transition: filter 0.3s ease;
+        }
+        
+        .mainheading.blur {
+            filter: blur(15px);
+            opacity: 0.7;
+        }
+
+        h2 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 28px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        a{
+            color:rgb(19, 213, 213);
+            text-align: right;
+            display: block;
+            margin-top: 8px;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        a:hover {
+            text-decoration: underline;
+            color: rgb(15, 179, 179);
+        }
+        .login-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            width: 400px;
+            box-shadow: 0px 15px 35px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(94, 73, 73, 0.2);
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+        .input-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .input-group label {
+            display: block;
+            color: white;
+            margin-bottom: 8px;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .input-group input:focus {
+            background-color: rgb(218, 176, 98);
+            transform: scale(1.02);
+        }
+
+        .password-group {
+            opacity: 0;
+            transform: translateY(-50px);
+            transition: all 0.6s ease;
+            pointer-events: none;
+        }
+
+        .password-group.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+            animation: bounce 0.8s ease-out;
+        }
+
+        @keyframes bounce {
+            0% { transform: translateY(-100px); }
+            60% { transform: translateY(10px); }
+            80% { transform: translateY(-5px); }
+            100% { transform: translateY(0); }
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transform: scale(0);
+            opacity: 0;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .submit-btn.show {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        .submit-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .login-container.hole1 {
+            position: relative;
+        }
+
+        .login-container.hole1::after {
+            content: '';
+            position: absolute;
+            top: 30%;
+            left: 20%;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: transparent;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 0 10px rgba(0,0,0,0.5);
+            border: 2px solid rgba(0,0,0,0.3);
+        }
+
+        .login-container.hole2::before {
+            content: '';
+            position: absolute;
+            top: 60%;
+            right: 25%;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: transparent;
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.9), 0 0 15px rgba(0,0,0,0.6);
+            border: 3px solid rgba(0,0,0,0.4);
+            z-index: 1;
+        }
+
+        .login-container.shatter {
+            animation: shatter 1.5s ease-in-out forwards;
+        }
+
+        @keyframes shatter {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scale(1.05) rotate(2deg); }
+            100% { 
+                transform: translate(-50%, -50%) scale(0.8) rotate(-5deg); 
+                opacity: 0;
+                filter: blur(10px);
+            }
+        }
+
+        .bullet {
+            position: fixed;
+            width: 12px;
+            height: 25px;
+            background: linear-gradient(45deg, #ff4757, #ffa502);
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            box-shadow: 0 0 10px rgba(255, 71, 87, 0.6);
+            z-index: 15;
+            opacity: 1;
+        }
+
+        .bullet.shoot {
+            animation: shoot-bullet 1.5s ease-out forwards;
+        }
+
+        @keyframes shoot-bullet {
+            0% {
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+                box-shadow: 0 0 10px rgba(255, 71, 87, 0.6);
+            }
+            80% {
+                opacity: 1;
+                transform: scale(1.1) rotate(270deg);
+                box-shadow: 0 0 20px rgba(255, 71, 87, 1);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(2) rotate(360deg);
+                box-shadow: 0 0 30px rgba(255, 71, 87, 0);
+            }
+        }
+
+
+
+        .main-website {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 1s ease;
+            z-index: 1;
+        }
+
+        .main-website.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .welcome-content {
+            text-align: center;
+            color: white;
+        }
+
+        .welcome-content h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .welcome-content p {
+            font-size: 20px;
+            opacity: 0.9;
+        }
+
+        .crack-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0;
+            z-index: 8;
+        }
+
+        .crack-effect.active {
+            opacity: 1;
+            animation: crack-spread 1s ease-out forwards;
+        }
+
+        @keyframes crack-spread {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .crack-line {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.8);
+            transform-origin: center;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 class="mainheading">Sena-Suraksha Login Page</h1>
+    </header>
+    <div class="login-container" id="loginContainer">
+        <h2>Welcome Back</h2>
+        
+        <div class="input-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" placeholder="Enter your username" autocomplete="off">
+        </div>
+        
+        <div class="input-group password-group" id="passwordGroup">
+            <label for="password">Password</label>
+            <input type="password" id="password" placeholder="Enter your password" autocomplete="off">
+            <a href="#" target="_main">Forget Password</a>
+        </div>
+        
+        <button class="submit-btn" id="submitBtn">Login</button>
+    </div>
+
+    <div class="crack-effect" id="crackEffect"></div>
+
+    <div class="main-website" id="mainWebsite">
+        <div class="welcome-content">
+            <h1>Welcome to Sena-Suraksha Dashboard!</h1>
+            <p>You have successfully logged in</p>
+        </div>
+    </div>
+
+    <script>
+        const validCredentials = {
+            username: 'admin',
+            password: 'password123'
+        };
+
+        const usernameInput = document.getElementById('username');
+        const passwordGroup = document.getElementById('passwordGroup');
+        const passwordInput = document.getElementById('password');
+        const submitBtn = document.getElementById('submitBtn');
+        const loginContainer = document.getElementById('loginContainer');
+        const mainWebsite = document.getElementById('mainWebsite');
+        const crackEffect = document.getElementById('crackEffect');
+        const mainHeading = document.querySelector('.mainheading');
+
+        let passwordShown = false;
+
+        // Show username input is working
+        usernameInput.addEventListener('input', function() {
+            console.log('Username input:', this.value);
+            checkCredentials();
+        });
+
+        // Handle Enter key in username field
+        usernameInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && this.value.trim() !== '' && !passwordShown) {
+                showPasswordField();
+            }
+        });
+
+        // Show password field with animation
+        function showPasswordField() {
+            passwordShown = true;
+            passwordGroup.classList.add('show');
+            setTimeout(() => {
+                passwordInput.focus();
+            }, 400);
+        }
+
+        // Check password input
+        passwordInput.addEventListener('input', function() {
+            console.log('Password input:', this.value);
+            checkCredentials();
+        });
+
+        // Check credentials
+        function checkCredentials() {
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
+            
+            console.log('Checking credentials:', username, password);
+            
+            if (username === validCredentials.username && password === validCredentials.password) {
+                submitBtn.classList.add('show');
+                console.log('Valid credentials!');
+            } else {
+                submitBtn.classList.remove('show');
+            }
+        }
+
+        // Handle submit
+        submitBtn.addEventListener('click', function() {
+            console.log('Submit clicked!');
+            
+            // Disable the button to prevent multiple clicks
+            submitBtn.disabled = true;
+            
+            // Create bullets that will progressively damage the login form
+            createProgressiveBullets();
+        });
+
+        // Create progressive bullet damage effect
+        function createProgressiveBullets() {
+            console.log('Creating progressive bullets...');
+            
+            // Get login container position
+            const loginRect = loginContainer.getBoundingClientRect();
+            
+            // Define bullet targets on different parts of login form
+            const bulletTargets = [
+                { 
+                    startX: -50, 
+                    startY: window.innerHeight * 0.3, 
+                    targetX: loginRect.left + loginRect.width * 0.2, 
+                    targetY: loginRect.top + loginRect.height * 0.3,
+                    delay: 0,
+                    effect: 'hole1'
+                },
+                { 
+                    startX: window.innerWidth + 50, 
+                    startY: window.innerHeight * 0.6, 
+                    targetX: loginRect.right - loginRect.width * 0.25, 
+                    targetY: loginRect.top + loginRect.height * 0.6,
+                    delay: 600,
+                    effect: 'hole2'
+                },
+                { 
+                    startX: window.innerWidth * 0.7, 
+                    startY: -50, 
+                    targetX: loginRect.left + loginRect.width * 0.5, 
+                    targetY: loginRect.top + loginRect.height * 0.4,
+                    delay: 1200,
+                    effect: 'shatter'
+                }
+            ];
+            
+            bulletTargets.forEach((data, i) => {
+                const bullet = document.createElement('div');
+                bullet.className = 'bullet';
+                
+                bullet.style.left = data.startX + 'px';
+                bullet.style.top = data.startY + 'px';
+                
+                document.body.appendChild(bullet);
+                console.log(`Bullet ${i + 1} created, targeting:`, data.targetX, data.targetY);
+                
+                // Launch bullet after delay
+                setTimeout(() => {
+                    bullet.style.transition = 'all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                    bullet.style.left = data.targetX + 'px';
+                    bullet.style.top = data.targetY + 'px';
+                    bullet.classList.add('shoot');
+                    
+                    // Apply damage effect when bullet hits
+                    setTimeout(() => {
+                        if (data.effect === 'hole1') {
+                            loginContainer.classList.add('hole1');
+                            console.log('First hole created');
+                        } else if (data.effect === 'hole2') {
+                            loginContainer.classList.add('hole2');
+                            console.log('Second hole created');
+                        } else if (data.effect === 'shatter') {
+                            createCrackEffect();
+                            loginContainer.classList.add('shatter');
+                            console.log('Login container shattered');
+                            
+                            // Show main website after shatter
+                            setTimeout(() => {
+                                mainWebsite.classList.add('show');
+                            }, 1000);
+                        }
+                    }, 800); // Bullet flight time
+                    
+                }, data.delay);
+                
+                // Remove bullet after impact
+                setTimeout(() => {
+                    if (bullet.parentNode) {
+                        bullet.remove();
+                    }
+                }, data.delay + 1500);
+            });
+        }
+
+        // Create crack effect
+        function createCrackEffect() {
+            crackEffect.classList.add('active');
+            mainHeading.classList.add('blur'); // Blur the main heading
+            
+            for (let i = 0; i < 8; i++) {
+                const crack = document.createElement('div');
+                crack.className = 'crack-line';
+                
+                const angle = (360 / 8) * i;
+                const length = Math.random() * 300 + 100;
+                
+                crack.style.width = '2px';
+                crack.style.height = length + 'px';
+                crack.style.left = '50%';
+                crack.style.top = '50%';
+                crack.style.transform = `translate(-50%,-50%) rotate(${angle}deg)`;
+                crackEffect.appendChild(crack);
+            }
+            
+            setTimeout(() => {
+                crackEffect.innerHTML = '';
+                crackEffect.classList.remove('active');
+                mainHeading.classList.remove('blur'); // Remove blur after crack effect
+            }, 1000);
+        }
+
+        // Focus on username input when page loads
+        window.addEventListener('load', function() {
+            usernameInput.focus();
+        });
+    </script>
+</body>
+</html>
