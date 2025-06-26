@@ -1,0 +1,30 @@
+.op-list {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.heading-1 {
+  text-align: center;
+  margin: 3rem 2rem;
+}
+
+.btn-outline-primary,
+.btn-outline-success {
+  margin: 0.2rem;
+}
+.mb-0.opacity-75 > span {
+  margin-right: 1rem;
+  margin-left: 1rem;
+}
+
+#map {
+  height: 70vh;
+  width: 100vw;
+  border-radius: 1%;
+}
+
+.list-group {
+  margin-bottom: 10vh;
+}

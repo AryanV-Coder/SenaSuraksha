@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <link rel="stylesheet" href="./loginStyles.css" />
+  </head>
+
+  <body>
+    <nav class="navbar bg-body-tertiary">
+      <div class="container-fluid">
+        <a class="navbar-brand">SEENA SURAKSHA</a>
+        <form class="d-flex" role="search">
+          <input
+            class="form-control me-2"
+            type="search"
+            placeholder="Search"
+            aria-label="Search"
+          />
+          <button class="btn btn-outline-primary" type="submit">Login</button>
+          <button class="btn btn-outline-success" type="submit">SignUp</button>
+        </form>
+      </div>
+    </nav>
+
+    <h1 class="heading-1">Ongoing Operations</h1>
+    <div class="list-group">
+      <a
+        href="#"
+        class="list-group-item list-group-item-action d-flex gap-3 py-3"
+        aria-current="true"
+      >
+        <div class="op-list d-flex gap-2 w-100 justify-content-between">
+          <div class="op-list">
+            <h6 class="mb-0">Operation Name: op1</h6>
+            <p class="mb-0 opacity-75">
+              <span>Start Time: 00:00</span>
+              <span>End Time: 00:00</span>
+            </p>
+          </div>
+        </div>
+      </a>
+      <a
+        href="#"
+        class="list-group-item list-group-item-action d-flex gap-3 py-3"
+        aria-current="true"
+      >
+        <div class="op-list d-flex gap-2 w-100 justify-content-between">
+          <div class="op-list">
+            <h6 class="mb-0">Operation Name: op2</h6>
+            <p class="mb-0 opacity-75">
+              <span>Start Time: 00:00</span>
+              <span>End Time: 00:00</span>
+            </p>
+          </div>
+        </div>
+      </a>
+      <a
+        href="#"
+        class="list-group-item list-group-item-action d-flex gap-3 py-3"
+        aria-current="true"
+      >
+        <div class="op-list d-flex gap-2 w-100 justify-content-between">
+          <div class="op-list">
+            <h6 class="mb-0">Operation Name: op3</h6>
+            <p class="mb-0 opacity-75">
+              <span>Start Time: 00:00</span>
+              <span>End Time: 00:00</span>
+            </p>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <div id="map"></div>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q"
+      crossorigin="anonymous"
+    ></script>
+    <script src="./loginScript.js"></script>
+  </body>
+</html>
