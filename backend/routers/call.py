@@ -1,53 +1,55 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from typing import Dict
-from starlette.websockets import WebSocketState
+import socketio
 
-router = APIRouter()
+sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
 
-# Store connected clients (user_id: websocket)
-clients: Dict[str, WebSocket] = {}
+clients = {}  # user_id -> sid
 
-@router.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
-    user_id = None
+@sio.event
+async def connect(sid, environ):
+    print(f"Client connected: {sid}")
 
-    try:
-        while True:
-            data = await websocket.receive_json()
+@sio.event
+async def disconnect(sid):
+    print(f"Client disconnected: {sid}")
+    for uid, socket_sid in list(clients.items()):
+        if socket_sid == sid:
+            del clients[uid]
+            break
 
-            action = data.get("action")
-            message = data.get("message")
+@sio.on('join')
+async def handle_join(sid, user_id):
+    clients[user_id] = sid
+    print(f"{user_id} joined with SID: {sid}")
 
-            if action == "join":
-                user_id = message
-                clients[user_id] = websocket
-                print(f"{user_id} joined")
+@sio.on('offer')
+async def handle_offer(sid, data):
+    to = data.get("to")
+    offer = data.get("offer")
+    if to in clients:
+        await sio.emit('offer', {'offer': offer, 'from': get_user_id_by_sid(sid)}, to=clients[to])
 
-            elif action == "offer":
-                to = message.get("to")
-                offer = message.get("offer")
-                if to in clients and clients[to].application_state == WebSocketState.CONNECTED:
-                    await clients[to].send_json({"type": "offer", "from": user_id, "offer": offer})
+@sio.on('answer')
+async def handle_answer(sid, data):
+    to = data.get("to")
+    answer = data.get("answer")
+    if to in clients:
+        await sio.emit('answer', {'answer': answer, 'from': get_user_id_by_sid(sid)}, to=clients[to])
 
-            elif action == "answer":
-                to = message.get("to")
-                answer = message.get("answer")
-                if to in clients and clients[to].application_state == WebSocketState.CONNECTED:
-                    await clients[to].send_json({"type": "answer", "from": user_id, "answer": answer})
+@sio.on('ice-candidate')
+async def handle_ice_candidate(sid, data):
+    to = data.get("to")
+    candidate = data.get("candidate")
+    if to in clients:
+        await sio.emit('ice-candidate', {'candidate': candidate, 'from': get_user_id_by_sid(sid)}, to=clients[to])
 
-            elif action == "ice-candidate":
-                to = message.get("to")
-                candidate = message.get("candidate")
-                if to in clients and clients[to].application_state == WebSocketState.CONNECTED:
-                    await clients[to].send_json({"type": "ice-candidate", "from": user_id, "candidate": candidate})
+@sio.on('end-call')
+async def handle_end_call(sid, data):
+    to = data.get("to")
+    if to in clients:
+        await sio.emit('end-call', {'from': get_user_id_by_sid(sid)}, to=clients[to])
 
-            elif action == "end-call":
-                to = message.get("to")
-                if to in clients and clients[to].application_state == WebSocketState.CONNECTED:
-                    await clients[to].send_json({"type": "end-call", "from": user_id})
-
-    except WebSocketDisconnect:
-        print(f"{user_id} disconnected")
-        if user_id in clients:
-            del clients[user_id]
+def get_user_id_by_sid(sid):
+    for uid, socket_sid in clients.items():
+        if socket_sid == sid:
+            return uid
+    return None

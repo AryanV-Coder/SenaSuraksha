@@ -4,10 +4,12 @@ from fastapi.responses import JSONResponse
 from datetime import datetime
 from routers import ai_analysis, call
 import os
+import socketio
 
+# Create base FastAPI app
 app = FastAPI()
 
-# Allow CORS for frontend
+# Allow CORS for frontend apps
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -16,8 +18,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(ai_analysis.router,prefix="/ai-analysis")
-app.include_router(call.router,prefix="/call")
+# Include all API routes
+app.include_router(ai_analysis.router, prefix="/ai-analysis")
+
+# Wrap app with Socket.IO from call.py
+socket_app = socketio.ASGIApp(call.sio, other_asgi_app=app)
+
 
 # META_FILE = "uploads/meta.txt"
 # os.makedirs("uploaded_videos", exist_ok=True)

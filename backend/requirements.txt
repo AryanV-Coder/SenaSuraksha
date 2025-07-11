@@ -9,3 +9,4 @@ speechrecognition
 pydub
 ffmpeg-python
 gtts
+python-socketio[asgi]
