@@ -47,21 +47,25 @@ def speech_to_text(audio_path):
 async def soldier_feed(video: UploadFile = File(None), audio: UploadFile = File(None)):
 
     if video is not None and audio is None:
-        # Ensure directory exists
-        os.makedirs("uploaded_videos", exist_ok=True)
+        # # Ensure directory exists
+        # os.makedirs("uploaded_videos", exist_ok=True)
         
-        # Save video file (convert .temp to .mp4 if needed)
-        filename = video.filename
-        if filename.endswith('.temp'):
-            filename = filename.rsplit('.', 1)[0] + '.mp4'
-        video_file_path = f"uploaded_videos/{filename}"
-        contents = await video.read()
-        with open(video_file_path, "wb") as file:
-            file.write(contents)
+        # # Save video file (convert .temp to .mp4 if needed)
+        # filename = video.filename
+        # if filename.endswith('.temp'):
+        #     filename = filename.rsplit('.', 1)[0] + '.mp4'
+        # video_file_path = f"uploaded_videos/{filename}"
+        # contents = await video.read()
+        # with open(video_file_path, "wb") as file:
+        #     file.write(contents)
 
-        # Read the binary data and encode to base64
-        with open(video_file_path, 'rb') as file:
-            encoded_video = base64.b64encode(file.read()).decode('utf-8')
+        # # Read the binary data and encode to base64
+        # with open(video_file_path, 'rb') as file:
+        #     encoded_video = base64.b64encode(file.read()).decode('utf-8')
+
+        contents = await video.read()
+        encoded_video = base64.b64encode(contents).decode('utf-8')
+
 
         prompt =[
             {
@@ -134,21 +138,24 @@ async def soldier_feed(video: UploadFile = File(None), audio: UploadFile = File(
 
     elif (video is not None and audio is not None):
         # Ensure directories exist
-        os.makedirs("uploaded_videos", exist_ok=True)
+        # os.makedirs("uploaded_videos", exist_ok=True)
         os.makedirs("uploaded_audios", exist_ok=True)
         
-        # Save video file (convert .temp to .mp4 if needed)
-        filename = video.filename
-        if filename.endswith('.temp'):
-            filename = filename.rsplit('.', 1)[0] + '.mp4'
-        video_file_path = f"uploaded_videos/{filename}"
-        contents = await video.read()
-        with open(video_file_path, "wb") as file:
-            file.write(contents)
+        # # Save video file (convert .temp to .mp4 if needed)
+        # filename = video.filename
+        # if filename.endswith('.temp'):
+        #     filename = filename.rsplit('.', 1)[0] + '.mp4'
+        # video_file_path = f"uploaded_videos/{filename}"
+        # contents = await video.read()
+        # with open(video_file_path, "wb") as file:
+        #     file.write(contents)
 
-        # Read the binary data and encode to base64
-        with open(video_file_path, 'rb') as file:
-            encoded_video = base64.b64encode(file.read()).decode('utf-8')
+        # # Read the binary data and encode to base64
+        # with open(video_file_path, 'rb') as file:
+        #     encoded_video = base64.b64encode(file.read()).decode('utf-8')
+
+        contents = await video.read()
+        encoded_video = base64.b64encode(contents).decode('utf-8')
 
         # Save audio file (convert .aac to .wav if needed)
         filename = audio.filename
