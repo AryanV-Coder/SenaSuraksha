@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Web Audio Call</title>
+  <style>
+    body {
+      background-color: #0A0F1C;
+      color: white;
+      font-family: sans-serif;
+      text-align: center;
+      padding-top: 100px;
+    }
+    button {
+      padding: 15px 25px;
+      font-size: 18px;
+      border-radius: 12px;
+      border: none;
+      margin: 10px;
+      cursor: pointer;
+    }
+    #micBtn { background-color: yellow; color: black; }
+    #endBtn { background-color: red; display: none; }
+    #status { font-size: 20px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+
+  <h1>Trial Caller - Web</h1>
+
+  <button id="micBtn">🎤 Start Call</button>
+  <button id="endBtn">❌ End Call</button>
+
+  <div id="status">Not Connected</div>
+
+  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+  <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
