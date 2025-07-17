@@ -92,7 +92,7 @@ class _TacticalFeedScreenState extends State<TacticalFeedScreen> {
         children: [
           CameraInput(onSendData: _onSendData),
           Positioned(
-            bottom: 120,
+            bottom: 160,
             right: MediaQuery.of(context).size.width / 2 - 20,
             child: VoiceBarVisualizer(isSpeaking: _isSpeaking),
           ),

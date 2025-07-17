@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:permission_handler/permission_handler.dart';
 
 class TrialCallScreen extends StatefulWidget {
   const TrialCallScreen({super.key});
@@ -14,7 +15,7 @@ class _TrialCallScreenState extends State<TrialCallScreen> {
   bool isCallConnected = false;
   bool isReceivingCall = false;
 
-  late IO.Socket socket;
+  IO.Socket? socket; // Make nullable - don't connect immediately
   RTCPeerConnection? _peerConnection;
   MediaStream? _localStream;
 
@@ -24,58 +25,117 @@ class _TrialCallScreenState extends State<TrialCallScreen> {
   @override
   void initState() {
     super.initState();
-    initSocket();
+    // Don't auto-connect - only connect when user starts a call
   }
 
-  void initSocket() {
-    socket = IO.io('https://senasuraksha.onrender.com', <String, dynamic>{
-      'transports': ['websocket'],
-    });
+  Future<void> initSocket() async {
+    if (socket?.connected == true) {
+      return; // Already connected
+    }
 
-    socket.onConnect((_) {
-      print('Connected to signaling server');
-      socket.emit('join', selfId);
-    });
-
-    socket.on('offer', (data) async {
-      callerId = data['from'];
-      showIncomingCallPopup();
-    });
-
-    socket.on('answer', (data) async {
-      var answer = RTCSessionDescription(
-        data['answer']['sdp'],
-        data['answer']['type'],
-      );
-      await _peerConnection?.setRemoteDescription(answer);
-      setState(() {
-        isCallConnected = true;
-        isCallConnecting = false;
+    try {
+      socket = IO.io('https://senasuraksha.onrender.com', <String, dynamic>{
+        'transports': ['websocket'],
+        'timeout': 20000,
       });
-    });
 
-    socket.on('ice-candidate', (data) async {
-      await _peerConnection?.addCandidate(
-        RTCIceCandidate(
-          data['candidate']['candidate'],
-          data['candidate']['sdpMid'],
-          data['candidate']['sdpMLineIndex'],
-        ),
-      );
-    });
+      return await Future(() {
+        socket!.onConnect((_) {
+          print('Connected to signaling server');
+          socket!.emit('join', selfId);
+        });
 
-    // OPTIONAL: Handle remote end call
-    socket.on('end-call', (_) {
-      endCall();
-    });
+        socket!.onConnectError((error) {
+          print('Socket connection error: $error');
+        });
+
+        socket!.onDisconnect((_) {
+          print('Disconnected from signaling server');
+        });
+
+        socket!.on('offer', (data) async {
+          try {
+            callerId = data['from'];
+            showIncomingCallPopup();
+          } catch (e) {
+            print('Error handling offer: $e');
+          }
+        });
+
+        socket!.on('answer', (data) async {
+          try {
+            var answer = RTCSessionDescription(
+              data['answer']['sdp'],
+              data['answer']['type'],
+            );
+            await _peerConnection?.setRemoteDescription(answer);
+            setState(() {
+              isCallConnected = true;
+              isCallConnecting = false;
+            });
+          } catch (e) {
+            print('Error handling answer: $e');
+          }
+        });
+
+        socket!.on('ice-candidate', (data) async {
+          try {
+            await _peerConnection?.addCandidate(
+              RTCIceCandidate(
+                data['candidate']['candidate'],
+                data['candidate']['sdpMid'],
+                data['candidate']['sdpMLineIndex'],
+              ),
+            );
+          } catch (e) {
+            print('Error handling ICE candidate: $e');
+          }
+        });
+
+        // OPTIONAL: Handle remote end call
+        socket!.on('end-call', (_) {
+          endCall();
+        });
+      });
+    } catch (e) {
+      print('Error initializing socket: $e');
+    }
   }
 
   void toggleCall() async {
+    // Check and request permissions first
+    final micPermission = await Permission.microphone.request();
+    
+    if (micPermission != PermissionStatus.granted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Microphone permission is required for calling'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       isCallConnecting = true;
     });
 
-    await startCall();
+    try {
+      // Connect to signaling server first
+      await initSocket();
+      await startCall();
+    } catch (e) {
+      print('Error starting call: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to start call: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      setState(() {
+        isCallConnecting = false;
+      });
+    }
   }
 
   void showIncomingCallPopup() {
@@ -108,17 +168,22 @@ class _TrialCallScreenState extends State<TrialCallScreen> {
   }
 
   Future<void> startCall() async {
-    callerId = "commander"; // The peer's selfId
+    try {
+      callerId = "commander"; // The peer's selfId
 
-    await initializePeerConnection();
+      await initializePeerConnection();
 
-    RTCSessionDescription offer = await _peerConnection!.createOffer();
-    await _peerConnection!.setLocalDescription(offer);
+      RTCSessionDescription offer = await _peerConnection!.createOffer();
+      await _peerConnection!.setLocalDescription(offer);
 
-    socket.emit('offer', {
-      'offer': offer.toMap(),
-      'to': callerId, // 👈 IMPORTANT
-    });
+      socket!.emit('offer', {
+        'offer': offer.toMap(),
+        'to': callerId, // 👈 IMPORTANT
+      });
+    } catch (e) {
+      print('Error in startCall: $e');
+      rethrow;
+    }
   }
 
   Future<void> answerCall() async {
@@ -127,7 +192,7 @@ class _TrialCallScreenState extends State<TrialCallScreen> {
     RTCSessionDescription answer = await _peerConnection!.createAnswer();
     await _peerConnection!.setLocalDescription(answer);
 
-    socket.emit('answer', {'answer': answer.toMap(), 'to': callerId});
+    socket!.emit('answer', {'answer': answer.toMap(), 'to': callerId});
 
     setState(() {
       isCallConnected = true;
@@ -136,28 +201,54 @@ class _TrialCallScreenState extends State<TrialCallScreen> {
   }
 
   Future<void> initializePeerConnection() async {
-    final Map<String, dynamic> configuration = {
-      'iceServers': [
-        {'urls': 'stun:stun.l.google.com:19302'},
-      ],
-    };
+    try {
+      final Map<String, dynamic> configuration = {
+        'iceServers': [
+          {'urls': 'stun:stun.l.google.com:19302'},
+        ],
+        'sdpSemantics': 'unified-plan', // Explicitly use Unified Plan
+      };
 
-    _peerConnection = await createPeerConnection(configuration);
-    _localStream = await navigator.mediaDevices.getUserMedia({'audio': true});
-    _peerConnection!.addStream(_localStream!);
-
-    _peerConnection!.onIceCandidate = (candidate) {
-      if (callerId != null) {
-        socket.emit('ice-candidate', {
-          'candidate': {
-            'candidate': candidate.candidate,
-            'sdpMid': candidate.sdpMid,
-            'sdpMLineIndex': candidate.sdpMLineIndex,
-          },
-          'to': callerId,
+      _peerConnection = await createPeerConnection(configuration);
+      
+      // Get user media with error handling
+      try {
+        _localStream = await navigator.mediaDevices.getUserMedia({
+          'audio': true,
+          'video': false, // Set to false since you're only doing audio calls
         });
+      } catch (e) {
+        print('Error getting user media: $e');
+        throw Exception('Failed to access microphone: $e');
       }
-    };
+      
+      // Use addTrack instead of addStream (Unified Plan)
+      _localStream!.getAudioTracks().forEach((track) {
+        _peerConnection!.addTrack(track, _localStream!);
+      });
+
+      _peerConnection!.onIceCandidate = (candidate) {
+        if (callerId != null && socket?.connected == true) {
+          socket!.emit('ice-candidate', {
+            'candidate': {
+              'candidate': candidate.candidate,
+              'sdpMid': candidate.sdpMid,
+              'sdpMLineIndex': candidate.sdpMLineIndex,
+            },
+            'to': callerId,
+          });
+        }
+      };
+
+      // Add connection state monitoring
+      _peerConnection!.onConnectionState = (state) {
+        print('WebRTC Connection State: $state');
+      };
+
+    } catch (e) {
+      print('Error initializing peer connection: $e');
+      rethrow;
+    }
   }
 
   Future<void> endCall() async {
@@ -166,7 +257,15 @@ class _TrialCallScreenState extends State<TrialCallScreen> {
     _peerConnection = null;
     _localStream = null;
 
-    socket.emit('end-call', {'to': callerId});
+    if (socket?.connected == true && callerId != null) {
+      socket!.emit('end-call', {'to': callerId});
+    }
+
+    // Disconnect socket when call ends
+    if (socket?.connected == true) {
+      socket!.disconnect();
+      socket = null;
+    }
 
     setState(() {
       isCallConnecting = false;
@@ -179,7 +278,7 @@ class _TrialCallScreenState extends State<TrialCallScreen> {
   void dispose() {
     _peerConnection?.dispose();
     _localStream?.dispose();
-    socket.dispose();
+    socket?.disconnect();
     super.dispose();
   }
 

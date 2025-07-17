@@ -2,10 +2,7 @@ const micBtn = document.getElementById('micBtn');
 const endBtn = document.getElementById('endBtn');
 const statusText = document.getElementById('status');
 
-const socket = io("https://senasuraksha.onrender.com", {
-  transports: ["websocket"]
-});
-
+let socket = null; // Don't connect immediately
 const selfId = "commander";  // Unique per user; you can make this dynamic
 let targetId = null;
 
@@ -13,7 +10,8 @@ let localStream;
 let peerConnection;
 
 micBtn.onclick = async () => {
-  statusText.textContent = "Connecting...";
+  statusText.textContent = "Connecting to signaling server...";
+  await connectToSignalingServer();
   await startCall();
 };
 
@@ -21,10 +19,29 @@ endBtn.onclick = async () => {
   endCall();
 };
 
-socket.on("connect", () => {
-  console.log("Connected to signaling server");
-  socket.emit("join", selfId);
-});
+async function connectToSignalingServer() {
+  if (socket && socket.connected) {
+    return; // Already connected
+  }
+
+  socket = io("https://senasuraksha.onrender.com", {
+    transports: ["websocket"]
+  });
+
+  return new Promise((resolve) => {
+    socket.on("connect", () => {
+      console.log("Connected to signaling server");
+      socket.emit("join", selfId);
+      statusText.textContent = "Connected! Starting call...";
+      resolve();
+    });
+
+    // Set up all socket event listeners here
+    setupSocketListeners();
+  });
+}
+
+function setupSocketListeners() {
 
 socket.on("offer", async (data) => {
   targetId = data.from;
@@ -50,6 +67,8 @@ socket.on("ice-candidate", async (data) => {
 socket.on("end-call", () => {
   endCall();
 });
+
+}
 
 async function startCall() {
   targetId = "soldier1"; // Should match the peer's selfId
@@ -113,7 +132,15 @@ function endCall() {
   peerConnection?.close();
   peerConnection = null;
 
-  socket.emit("end-call", { to: targetId });
+  if (socket && targetId) {
+    socket.emit("end-call", { to: targetId });
+  }
+
+  // Disconnect socket when call ends
+  if (socket) {
+    socket.disconnect();
+    socket = null;
+  }
 
   statusText.textContent = "❌ Call Ended";
   endBtn.style.display = "none";

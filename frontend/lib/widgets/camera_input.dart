@@ -192,7 +192,8 @@ class _CameraInputState extends State<CameraInput> with WidgetsBindingObserver {
             // Frosted glass effect for button column
             Positioned(
               bottom: 60,
-              right: 18,
+              right: 25,
+              left : 25,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(24),
                 child: BackdropFilter(
@@ -213,8 +214,9 @@ class _CameraInputState extends State<CameraInput> with WidgetsBindingObserver {
                         ),
                       ],
                     ),
-                    child: Column(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment : MainAxisAlignment.center,
                       children: [
                         // Flip camera
                         Material(
@@ -231,7 +233,7 @@ class _CameraInputState extends State<CameraInput> with WidgetsBindingObserver {
                             tooltip: 'Switch Camera',
                           ),
                         ),
-                        const SizedBox(height: 18),
+                        const SizedBox(width: 18),
                         // Record/Stop video
                         Material(
                           color: isVideoEnabled
@@ -257,13 +259,13 @@ class _CameraInputState extends State<CameraInput> with WidgetsBindingObserver {
                                 : 'Start Video',
                           ),
                         ),
-                        const SizedBox(height: 18),
+                        const SizedBox(width: 18),
                         // Audio record button
                         AudioInput(
                           onStopRecordingAudio: _onStopRecordingAudio,
                           audioController: audioController,
                         ),
-                        const SizedBox(height: 18),
+                        const SizedBox(width: 18),
                         // Send button
                         Material(
                           color: Theme.of(context).colorScheme.primaryContainer,
