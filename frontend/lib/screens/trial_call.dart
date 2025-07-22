@@ -21,11 +21,22 @@ class _TrialCallScreenState extends State<TrialCallScreen> {
 
   final String selfId = "soldier1"; // Ideally generate or auth this
   String? callerId;
+  Map<String, dynamic>? _incomingOffer; // Store incoming offer
 
   @override
   void initState() {
     super.initState();
-    // Don't auto-connect - only connect when user starts a call
+    // Register immediately for incoming calls
+    _registerForIncomingCalls();
+  }
+
+  Future<void> _registerForIncomingCalls() async {
+    try {
+      await initSocket();
+      print("Registered for incoming calls");
+    } catch (e) {
+      print("Failed to register for incoming calls: $e");
+    }
   }
 
   Future<void> initSocket() async {
@@ -56,6 +67,8 @@ class _TrialCallScreenState extends State<TrialCallScreen> {
         socket!.on('offer', (data) async {
           try {
             callerId = data['from'];
+            // Store the offer data for later use
+            _incomingOffer = data['offer'];
             showIncomingCallPopup();
           } catch (e) {
             print('Error handling offer: $e');
@@ -96,6 +109,30 @@ class _TrialCallScreenState extends State<TrialCallScreen> {
         socket!.on('end-call', (_) {
           endCall();
         });
+
+        // Handle call rejection
+        socket!.on('call-rejected', (_) {
+          print('Call was rejected by remote user');
+          setState(() {
+            isCallConnecting = false;
+            isCallConnected = false;
+            callerId = null;
+          });
+          // Clean up connection resources
+          _localStream?.dispose();
+          _peerConnection?.close();
+          _peerConnection = null;
+          _localStream = null;
+          _incomingOffer = null;
+          
+          // Show user feedback
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Call was rejected'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        });
       });
     } catch (e) {
       print('Error initializing socket: $e');
@@ -121,7 +158,7 @@ class _TrialCallScreenState extends State<TrialCallScreen> {
     });
 
     try {
-      // Connect to signaling server first
+      // Ensure connected to signaling server (should already be connected)
       await initSocket();
       await startCall();
     } catch (e) {
@@ -148,16 +185,52 @@ class _TrialCallScreenState extends State<TrialCallScreen> {
           content: Text("Someone is calling you..."),
           actions: [
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(context);
-                answerCall();
+                
+                // Request microphone permission before answering
+                final micPermission = await Permission.microphone.request();
+                if (micPermission != PermissionStatus.granted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Microphone permission is required to answer calls'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+                
+                setState(() {
+                  isCallConnecting = true;
+                });
+                
+                try {
+                  await answerCall();
+                } catch (e) {
+                  print('Error answering call: $e');
+                  setState(() {
+                    isCallConnecting = false;
+                  });
+                }
               },
               child: Text("Accept"),
             ),
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                // Optional: Notify rejection
+                print('Rejecting call from: $callerId');
+                // Send rejection notification
+                if (socket?.connected == true && callerId != null) {
+                  socket!.emit('call-rejected', {'to': callerId});
+                  print('Sent call-rejected to: $callerId');
+                }
+                // Clean up state
+                setState(() {
+                  isCallConnecting = false;
+                  isCallConnected = false;
+                });
+                callerId = null;
+                _incomingOffer = null;
               },
               child: Text("Reject"),
             ),
@@ -187,17 +260,32 @@ class _TrialCallScreenState extends State<TrialCallScreen> {
   }
 
   Future<void> answerCall() async {
-    await initializePeerConnection();
+    try {
+      await initializePeerConnection();
 
-    RTCSessionDescription answer = await _peerConnection!.createAnswer();
-    await _peerConnection!.setLocalDescription(answer);
+      // Set remote description from stored offer
+      if (_incomingOffer != null) {
+        await _peerConnection!.setRemoteDescription(
+          RTCSessionDescription(_incomingOffer!['sdp'], _incomingOffer!['type'])
+        );
+      }
 
-    socket!.emit('answer', {'answer': answer.toMap(), 'to': callerId});
+      RTCSessionDescription answer = await _peerConnection!.createAnswer();
+      await _peerConnection!.setLocalDescription(answer);
 
-    setState(() {
-      isCallConnected = true;
-      isCallConnecting = false;
-    });
+      socket!.emit('answer', {'answer': answer.toMap(), 'to': callerId});
+
+      setState(() {
+        isCallConnected = true;
+        isCallConnecting = false;
+      });
+    } catch (e) {
+      print('Error in answerCall: $e');
+      setState(() {
+        isCallConnecting = false;
+      });
+      rethrow;
+    }
   }
 
   Future<void> initializePeerConnection() async {
@@ -226,6 +314,15 @@ class _TrialCallScreenState extends State<TrialCallScreen> {
       _localStream!.getAudioTracks().forEach((track) {
         _peerConnection!.addTrack(track, _localStream!);
       });
+
+      // Handle incoming audio stream
+      _peerConnection!.onTrack = (RTCTrackEvent event) {
+        print("Received remote audio track");
+        if (event.streams.isNotEmpty) {
+          // Remote audio will be played automatically through the device speaker
+          print("Remote stream added: ${event.streams[0].id}");
+        }
+      };
 
       _peerConnection!.onIceCandidate = (candidate) {
         if (callerId != null && socket?.connected == true) {
@@ -261,11 +358,8 @@ class _TrialCallScreenState extends State<TrialCallScreen> {
       socket!.emit('end-call', {'to': callerId});
     }
 
-    // Disconnect socket when call ends
-    if (socket?.connected == true) {
-      socket!.disconnect();
-      socket = null;
-    }
+    // DON'T disconnect socket - keep registered for incoming calls
+    // socket stays connected so user can receive future calls
 
     setState(() {
       isCallConnecting = false;
@@ -291,7 +385,7 @@ class _TrialCallScreenState extends State<TrialCallScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (!isCallConnected)
+            if (!isCallConnected && !isCallConnecting)
               IconButton(
                 onPressed: toggleCall,
                 icon: Icon(Icons.mic, size: 50, color: Colors.yellow),
@@ -309,8 +403,13 @@ class _TrialCallScreenState extends State<TrialCallScreen> {
               )
             else if (isCallConnected)
               Text(
-                "✅ Call Connected",
+                "✅ Call Connected - Ready to Talk!",
                 style: TextStyle(color: Colors.greenAccent, fontSize: 20),
+              )
+            else
+              Text(
+                "Ready to receive calls",
+                style: TextStyle(color: Colors.grey, fontSize: 16),
               ),
           ],
         ),
