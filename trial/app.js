@@ -9,9 +9,16 @@ let targetId = null;
 let localStream;
 let peerConnection;
 
-micBtn.onclick = async () => {
-  statusText.textContent = "Connecting to signaling server...";
+// Register immediately when page loads so user can receive calls
+window.addEventListener('DOMContentLoaded', async () => {
+  statusText.textContent = "Registering for incoming calls...";
   await connectToSignalingServer();
+  statusText.textContent = "Ready to receive calls";
+});
+
+micBtn.onclick = async () => {
+  statusText.textContent = "Starting call...";
+  await connectToSignalingServer(); // Ensure connected
   await startCall();
 };
 
@@ -29,12 +36,15 @@ async function connectToSignalingServer() {
   });
 
   return new Promise((resolve) => {
-    socket.on("connect", () => {
-      console.log("Connected to signaling server");
-      socket.emit("join", selfId);
-      statusText.textContent = "Connected! Starting call...";
-      resolve();
-    });
+  socket.on("connect", () => {
+    console.log("Connected to signaling server");
+    socket.emit("join", selfId);
+    // Don't overwrite status if we're starting a call
+    if (!statusText.textContent.includes("Starting call")) {
+      statusText.textContent = "Ready to receive calls";
+    }
+    resolve();
+  });
 
     // Set up all socket event listeners here
     setupSocketListeners();
@@ -45,7 +55,19 @@ function setupSocketListeners() {
 
 socket.on("offer", async (data) => {
   targetId = data.from;
-  await answerCall(data.offer);
+  
+  // Show incoming call popup
+  const acceptCall = confirm("📞 Incoming call! Accept?");
+  if (acceptCall) {
+    statusText.textContent = "Accepting call...";
+    await answerCall(data.offer);
+  } else {
+    console.log("Rejecting call from:", targetId);
+    // Optionally notify rejection
+    socket.emit("call-rejected", { to: targetId });
+    console.log("Sent call-rejected to:", targetId);
+    targetId = null;
+  }
 });
 
 socket.on("answer", async (data) => {
@@ -66,6 +88,24 @@ socket.on("ice-candidate", async (data) => {
 
 socket.on("end-call", () => {
   endCall();
+});
+
+socket.on("call-rejected", () => {
+  console.log("Call was rejected by remote user");
+  statusText.textContent = "Call rejected - Ready to receive calls";
+  endBtn.style.display = "none";
+  micBtn.style.display = "inline";
+  
+  // Clean up any existing connection
+  if (localStream) {
+    localStream.getTracks().forEach(track => track.stop());
+    localStream = null;
+  }
+  if (peerConnection) {
+    peerConnection.close();
+    peerConnection = null;
+  }
+  targetId = null;
 });
 
 }
@@ -113,6 +153,14 @@ async function createPeerConnection() {
     peerConnection.addTrack(track, localStream);
   });
 
+  // Handle incoming audio stream
+  peerConnection.ontrack = (event) => {
+    console.log("Received remote stream");
+    const remoteAudio = document.getElementById('remoteAudio') || createAudioElement();
+    remoteAudio.srcObject = event.streams[0];
+    remoteAudio.play().catch(e => console.log("Audio play failed:", e));
+  };
+
   peerConnection.onicecandidate = (event) => {
     if (event.candidate && targetId) {
       socket.emit("ice-candidate", {
@@ -127,6 +175,15 @@ async function createPeerConnection() {
   };
 }
 
+function createAudioElement() {
+  const audio = document.createElement('audio');
+  audio.id = 'remoteAudio';
+  audio.autoplay = true;
+  audio.controls = false;
+  document.body.appendChild(audio);
+  return audio;
+}
+
 function endCall() {
   localStream?.getTracks().forEach(track => track.stop());
   peerConnection?.close();
@@ -136,13 +193,10 @@ function endCall() {
     socket.emit("end-call", { to: targetId });
   }
 
-  // Disconnect socket when call ends
-  if (socket) {
-    socket.disconnect();
-    socket = null;
-  }
+  // DON'T disconnect socket - keep registered for incoming calls
+  targetId = null;
 
-  statusText.textContent = "❌ Call Ended";
+  statusText.textContent = "❌ Call Ended - Ready to receive calls";
   endBtn.style.display = "none";
   micBtn.style.display = "inline";
 }
