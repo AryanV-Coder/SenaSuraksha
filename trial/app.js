@@ -62,10 +62,10 @@ socket.on("offer", async (data) => {
     statusText.textContent = "Accepting call...";
     await answerCall(data.offer);
   } else {
-    console.log("Rejecting call from:", targetId);
+    console.log("🚫 WEB: Rejecting call from:", targetId);
     // Optionally notify rejection
     socket.emit("call-rejected", { to: targetId });
-    console.log("Sent call-rejected to:", targetId);
+    console.log("🚫 WEB: Sent call-rejected to:", targetId);
     targetId = null;
   }
 });
@@ -90,8 +90,11 @@ socket.on("end-call", () => {
   endCall();
 });
 
-socket.on("call-rejected", () => {
-  console.log("Call was rejected by remote user");
+socket.on("call-rejected", (data) => {
+  console.log("🚫 WEB: Received call-rejected event:", data);
+  console.log("🚫 WEB: From user:", data?.from);
+  console.log("🚫 WEB: Current targetId:", targetId);
+  
   statusText.textContent = "Call rejected - Ready to receive calls";
   endBtn.style.display = "none";
   micBtn.style.display = "inline";
@@ -106,6 +109,8 @@ socket.on("call-rejected", () => {
     peerConnection = null;
   }
   targetId = null;
+  
+  console.log("🚫 WEB: UI updated after call rejection");
 });
 
 }

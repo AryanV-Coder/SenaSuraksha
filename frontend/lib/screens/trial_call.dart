@@ -50,74 +50,80 @@ class _TrialCallScreenState extends State<TrialCallScreen> {
         'timeout': 20000,
       });
 
-      return await Future(() {
-        socket!.onConnect((_) {
-          print('Connected to signaling server');
-          socket!.emit('join', selfId);
-        });
+      // Set up event listeners immediately, not in Future
+      socket!.onConnect((_) {
+        print('Connected to signaling server');
+        socket!.emit('join', selfId);
+      });
 
-        socket!.onConnectError((error) {
-          print('Socket connection error: $error');
-        });
+      socket!.onConnectError((error) {
+        print('Socket connection error: $error');
+      });
 
-        socket!.onDisconnect((_) {
-          print('Disconnected from signaling server');
-        });
+      socket!.onDisconnect((_) {
+        print('Disconnected from signaling server');
+      });
 
-        socket!.on('offer', (data) async {
-          try {
-            callerId = data['from'];
-            // Store the offer data for later use
-            _incomingOffer = data['offer'];
-            showIncomingCallPopup();
-          } catch (e) {
-            print('Error handling offer: $e');
-          }
-        });
+      socket!.on('offer', (data) async {
+        try {
+          print('📞 Received offer from: ${data['from']}');
+          callerId = data['from'];
+          // Store the offer data for later use
+          _incomingOffer = data['offer'];
+          showIncomingCallPopup();
+        } catch (e) {
+          print('Error handling offer: $e');
+        }
+      });
 
-        socket!.on('answer', (data) async {
-          try {
-            var answer = RTCSessionDescription(
-              data['answer']['sdp'],
-              data['answer']['type'],
-            );
-            await _peerConnection?.setRemoteDescription(answer);
-            setState(() {
-              isCallConnected = true;
-              isCallConnecting = false;
-            });
-          } catch (e) {
-            print('Error handling answer: $e');
-          }
-        });
+      socket!.on('answer', (data) async {
+        try {
+          print('📞 Received answer from: ${data['from']}');
+          var answer = RTCSessionDescription(
+            data['answer']['sdp'],
+            data['answer']['type'],
+          );
+          await _peerConnection?.setRemoteDescription(answer);
+          setState(() {
+            isCallConnected = true;
+            isCallConnecting = false;
+          });
+        } catch (e) {
+          print('Error handling answer: $e');
+        }
+      });
 
-        socket!.on('ice-candidate', (data) async {
-          try {
-            await _peerConnection?.addCandidate(
-              RTCIceCandidate(
-                data['candidate']['candidate'],
-                data['candidate']['sdpMid'],
-                data['candidate']['sdpMLineIndex'],
-              ),
-            );
-          } catch (e) {
-            print('Error handling ICE candidate: $e');
-          }
-        });
+      socket!.on('ice-candidate', (data) async {
+        try {
+          await _peerConnection?.addCandidate(
+            RTCIceCandidate(
+              data['candidate']['candidate'],
+              data['candidate']['sdpMid'],
+              data['candidate']['sdpMLineIndex'],
+            ),
+          );
+        } catch (e) {
+          print('Error handling ICE candidate: $e');
+        }
+      });
 
-        // OPTIONAL: Handle remote end call
-        socket!.on('end-call', (_) {
-          endCall();
-        });
+      socket!.on('end-call', (data) {
+        print('📞 Received end-call from: ${data['from']}');
+        endCall();
+      });
 
-        // Handle call rejection
-        socket!.on('call-rejected', (_) {
-          print('Call was rejected by remote user');
+      // Handle call rejection - FIXED!
+      socket!.on('call-rejected', (data) {
+        print('🚫 MOBILE: Received call-rejected event: $data');
+        print('🚫 MOBILE: From user: ${data['from']}');
+        
+        if (mounted) {
           setState(() {
             isCallConnecting = false;
             isCallConnected = false;
             callerId = null;
           });
+          
           // Clean up connection resources
           _localStream?.dispose();
           _peerConnection?.close();
@@ -130,10 +136,15 @@ class _TrialCallScreenState extends State<TrialCallScreen> {
             SnackBar(
               content: Text('Call was rejected'),
               backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
             ),
           );
-        });
+          
+          print('🚫 MOBILE: UI updated after call rejection');
+        }
       });
+
+      print('✅ Socket event listeners set up successfully');
     } catch (e) {
       print('Error initializing socket: $e');
     }
@@ -218,12 +229,17 @@ class _TrialCallScreenState extends State<TrialCallScreen> {
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                print('Rejecting call from: $callerId');
+                print('🚫 MOBILE: Rejecting call from: $callerId');
+                
                 // Send rejection notification
                 if (socket?.connected == true && callerId != null) {
                   socket!.emit('call-rejected', {'to': callerId});
-                  print('Sent call-rejected to: $callerId');
+                  print('🚫 MOBILE: Sent call-rejected to: $callerId');
+                  print('🚫 MOBILE: Socket connected: ${socket?.connected}');
+                } else {
+                  print('🚫 MOBILE: Cannot send rejection - socket connected: ${socket?.connected}, callerId: $callerId');
                 }
+                
                 // Clean up state
                 setState(() {
                   isCallConnecting = false;
