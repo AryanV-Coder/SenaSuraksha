@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Commander Section - Soldier's Track</title>
+    <link rel = "stylesheet" href = "WebPage.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+<body>
+    <div class="main-container">
+        <div class="commander-section">            
+            <div class="top-section">
+                <div class="login-info">
+                    <span>Login Time:</span>
+                    <span class="time-display" id="loginTime">--:--</span><br>
+                    <span>Logout Time:</span>
+                    <span class="time-display" id ="logoutTime">--:--</span>
+                </div>
+                
+                <div class="soldier-track">Soldier's Track</div>
+                
+                <div class="user-info">
+                    <div class="user-icon">👤</div>
+                    <div>
+                        <div><strong>Name:</strong> Cmdr. Smith</div>
+                        <div><strong>Id:</strong> CMD001</div>
+                    </div>
+                    <div class="logout-btn" onclick="logout()">Log-out</div>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <div class="left-section">
+                    <div class="health-update" style="position: relative;">                     
+                        <h3>Health Update</h3>
+                        
+                        <div class="soldier-row">
+                            <div class="voice-box" onclick="toggleVoice(this)"></div>
+                            <div class="soldier-icon">
+                                👤
+                                <div class="status-indicator status-green"></div>
+                            </div>
+                            <div class="health-bar" onclick="adjustHealth(this, 'Alpha-1')" data-health="95" data-soldier="Alpha-1">
+                                <div class="health-fill" style="width: 95%;">
+                                    <span class="health-percentage">95%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="soldier-row">
+                            <div class="voice-box" onclick="toggleVoice(this)"></div>
+                            <div class="soldier-icon">
+                                👤
+                                <div class="status-indicator status-yellow"></div>
+                            </div>
+                            <div class="health-bar" onclick="adjustHealth(this, 'Bravo-2')" data-health="65" data-soldier="Bravo-2">
+                                <div class="health-fill medium" style="width: 65%;">
+                                    <span class="health-percentage">65%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="soldier-row">
+                            <div class="voice-box" onclick="toggleVoice(this)"></div>
+                            <div class="soldier-icon">
+                                👤
+                                <div class="status-indicator status-red"></div>
+                            </div>
+                            <div class="health-bar" onclick="adjustHealth(this, 'Charlie-3')" data-health="25" data-soldier="Charlie-3">
+                                <div class="health-fill low" style="width: 25%;">
+                                    <span class="health-percentage">25%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="soldier-row">
+                            <div class="voice-box" onclick="toggleVoice(this)"></div>
+                            <div class="soldier-icon">
+                                👤
+                                <div class="status-indicator status-green"></div>
+                            </div>
+                            <div class="health-bar" onclick="adjustHealth(this, 'DELTA-4')" data-health="88" data-soldier=" DELTA-4">
+                                <div class="health-fill high" style="width: 88%;">
+                                    <span class="health-percentage">88%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="soldier-row">
+                            <div class="voice-box" onclick="toggleVoice(this)"></div>
+                            <div class="soldier-icon">
+                                👤
+                                <div class="status-indicator status-yellow"></div>
+                            </div>
+                            <div class="health-bar" onclick="adjustHealth(this, 'ECHO-5')" data-health="72" data-soldier="ECHO-5">
+                                <div class="health-fill medium" style="width: 72%;">
+                                    <span class="health-percentage">72%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="view-more" onclick="showSoldierChart()">View More</div>
+                    </div>
+
+                    <div class="emergency-marquee">
+                        <div class="marquee-text">🚨 EMERGENCY: Soldier Charlie-3 requesting immediate medical evacuation - GPS coordinates: 34.0522°N, 118.2437°W - Status: CRITICAL 🚨</div>
+                    </div>
+                </div>
+
+                <div class="map-symbols">
+                    <h3>
+                        Map Symbols:
+                        <span class="map-icon-btn" onclick="showPathPredictor()">Path Predictor</span>
+                    </h3>
+                    
+                    <div class="symbol-row" onclick="highlightSymbol('normal')">
+                        <div class="symbol-icon symbol-normal"></div>
+                        <div>Normal Soldier</div>
+                    </div>
+                    
+                    <div class="symbol-row" onclick="highlightSymbol('communicate')">
+                        <div class="symbol-icon symbol-communicate"></div>
+                        <div>
+                            Soldier To Communicate<br>
+                            <small>(Shown with yellow rays effect)</small>
+                        </div>
+                    </div>
+                    
+                    <div class="symbol-row" onclick="highlightSymbol('danger')">
+                        <div class="symbol-icon symbol-danger"></div>
+                        <div>
+                            Soldier in danger (Shown<br>
+                            with red rays effect)
+                        </div>
+                    </div>
+                    
+                    <div class="symbol-row" onclick="highlightSymbol('enemy')">
+                        <div class="symbol-icon symbol-enemy"></div>
+                        <div>
+                            Enemy or Suspicious<br>
+                            Element
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bottom-section">
+                <div class="soldier-management">
+                    <div class="soldier-info-btn view-btn" onclick="viewSoldierInfo()">View Soldier Info</div>
+                    <div class="soldier-info-btn add-btn" onclick="addSoldierInfo()">Add Soldier Info</div>
+                    <div class="soldier-info-btn delete-btn" onclick="deleteSoldierInfo()">Delete Soldier Info</div>
+                </div>
+                <div class="emergency-button" onclick="activateEmergency()"><i class="fa fa-microphone" style="font-size:36px"></i>Emergency Note</div>
+                <div class="chatbot-button" onclick="openChatBot()">ChatBot</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Soldier Chart -->
+    <div id="soldierModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeSoldierModal()">&times;</span>
+            <h2>Registered Soldiers - Health & Status Overview</h2>
+            <div class="soldier-chart" id="soldierChart">
+                <!-- Soldier cards will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script src = WebPage.js></script>
+</body>
+</html>
